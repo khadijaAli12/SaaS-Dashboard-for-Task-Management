@@ -5,6 +5,9 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import './styles/globals.css'
 import './styles/themes.css'
 import './styles/components.css'
+import './styles/backgrounds.css'
+import './styles/theme-settings.css'
+import './styles/reports.css'  // ← Add this line for Reports page styling
 import App from './App'
 
 ReactDOM.createRoot(document.getElementById('root')).render(

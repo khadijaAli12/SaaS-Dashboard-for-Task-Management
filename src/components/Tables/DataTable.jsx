@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'
-import { Table, Button, Modal, Form, Badge, InputGroup, FormControl } from 'react-bootstrap'
+import { Table, Button, Modal, Form, Badge, InputGroup, FormControl, Card } from 'react-bootstrap'
+import { motion } from 'framer-motion'
 import { 
   useReactTable, 
   getCoreRowModel, 
@@ -8,12 +9,23 @@ import {
   getPaginationRowModel,
   flexRender 
 } from '@tanstack/react-table'
-import { FaEdit, FaTrash, FaPlus, FaSearch, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa'
+import { 
+  Edit3, 
+  Trash2, 
+  Search, 
+  ArrowUpDown, 
+  ArrowUp, 
+  ArrowDown,
+  Eye,
+  MoreHorizontal,
+  Filter,
+  Download,
+  RefreshCw
+} from 'lucide-react'
 
-const DataTable = ({ data, columns, title }) => {
-  const [showModal, setShowModal] = useState(false)
-  const [selectedRow, setSelectedRow] = useState(null)
+const DataTable = ({ data, columns, title, onAdd, onEdit, onDelete }) => {
   const [globalFilter, setGlobalFilter] = useState('')
+  const [showActions, setShowActions] = useState({})
 
   const table = useReactTable({
     data,
@@ -29,173 +41,219 @@ const DataTable = ({ data, columns, title }) => {
     globalFilterFn: 'includesString',
   })
 
-  const handleEdit = (row) => {
-    setSelectedRow(row)
-    setShowModal(true)
-  }
-
-  const handleDelete = (row) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      console.log('Deleting:', row)
-    }
-  }
-
   const handleGlobalFilterChange = (e) => {
     const value = e.target.value
     setGlobalFilter(value)
   }
 
-  return (
-    <>
-      <div className="table-controls mb-4">
-        <div className="d-flex justify-content-between align-items-center">
-          <h2>{title}</h2>
-          <div className="d-flex align-items-center">
-            <InputGroup style={{ maxWidth: '300px' }} className="me-3">
-              <InputGroup.Text>
-                <FaSearch />
-              </InputGroup.Text>
-              <FormControl
-                placeholder="Search..."
-                value={globalFilter || ''}
-                onChange={handleGlobalFilterChange}
-              />
-            </InputGroup>
-            <Button variant="primary">
-              <FaPlus className="me-2" />
-              Add New
-            </Button>
-          </div>
-        </div>
-      </div>
+  const ActionButton = ({ onClick, icon: Icon, variant = "outline-primary", size = "sm", title }) => (
+    <Button
+      variant={variant}
+      size={size}
+      onClick={onClick}
+      className="action-btn"
+      title={title}
+    >
+      <Icon size={16} />
+    </Button>
+  )
 
-      <div className="table-container">
-        <Table striped bordered hover responsive className="modern-table">
-          <thead className="table-dark">
-            {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <th 
-                    key={header.id}
-                    onClick={header.column.getToggleSortingHandler()}
-                    style={{ cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
-                  >
-                    <div className="d-flex justify-content-between align-items-center">
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                      <span>
-                        {header.column.getIsSorted() ? (
-                          header.column.getIsSorted() === 'desc' ? <FaSortDown /> : <FaSortUp />
-                        ) : (
-                          <FaSort />
-                        )}
-                      </span>
-                    </div>
-                  </th>
+  const ActionsCell = ({ row }) => (
+    <div className="actions-cell">
+      <ActionButton
+        onClick={() => onEdit && onEdit(row.original)}
+        icon={Edit3}
+        variant="outline-primary"
+        title="Edit"
+      />
+      <ActionButton
+        onClick={() => console.log('View:', row.original)}
+        icon={Eye}
+        variant="outline-info"
+        title="View"
+      />
+      <ActionButton
+        onClick={() => onDelete && onDelete(row.original.id)}
+        icon={Trash2}
+        variant="outline-danger"
+        title="Delete"
+      />
+    </div>
+  )
+
+  return (
+    <div className="data-table-container">
+      {/* Table Header Controls */}
+      <Card className="table-header-card mb-4">
+        <Card.Body>
+          <div className="table-header-controls">
+            <div className="table-title-section">
+              <h3 className="table-title">{title}</h3>
+              <p className="table-subtitle">Manage and organize your data efficiently</p>
+            </div>
+            
+            <div className="table-actions-section">
+              <div className="search-container">
+                <InputGroup className="search-input-group">
+                  <InputGroup.Text className="search-icon">
+                    <Search size={18} />
+                  </InputGroup.Text>
+                  <FormControl
+                    placeholder="Search records..."
+                    value={globalFilter || ''}
+                    onChange={handleGlobalFilterChange}
+                    className="search-input"
+                  />
+                </InputGroup>
+              </div>
+              
+              <div className="action-buttons">
+                <Button variant="outline-secondary" className="filter-btn">
+                  <Filter size={16} className="me-2" />
+                  Filter
+                </Button>
+                <Button variant="outline-primary" className="export-btn">
+                  <Download size={16} className="me-2" />
+                  Export
+                </Button>
+                <Button variant="outline-success" className="refresh-btn">
+                  <RefreshCw size={16} />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card.Body>
+      </Card>
+
+      {/* Table Container */}
+      <Card className="table-card">
+        <Card.Body className="p-0">
+          <div className="table-wrapper">
+            <Table className="modern-data-table">
+              <thead className="table-header">
+                {table.getHeaderGroups().map(headerGroup => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map(header => (
+                      <th 
+                        key={header.id}
+                        onClick={header.column.getToggleSortingHandler()}
+                        className={`table-header-cell ${header.column.getCanSort() ? 'sortable' : ''}`}
+                      >
+                        <div className="header-content">
+                          <span className="header-text">
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </span>
+                          {header.column.getCanSort() && (
+                            <span className="sort-indicator">
+                              {header.column.getIsSorted() ? (
+                                header.column.getIsSorted() === 'desc' ? 
+                                  <ArrowDown size={14} /> : 
+                                  <ArrowUp size={14} />
+                              ) : (
+                                <ArrowUpDown size={14} />
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    ))}
+                    <th className="table-header-cell actions-header">
+                      Actions
+                    </th>
+                  </tr>
                 ))}
-                <th>Actions</th>
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows.map(row => (
-              <tr key={row.id}>
-                {row.getVisibleCells().map(cell => (
-                  <td key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
+              </thead>
+              <tbody className="table-body">
+                {table.getRowModel().rows.map(row => (
+                  <motion.tr 
+                    key={row.id}
+                    className="table-row"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {row.getVisibleCells().map(cell => (
+                      <td key={cell.id} className="table-cell">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                    <td className="table-cell actions-cell">
+                      <ActionsCell row={row} />
+                    </td>
+                  </motion.tr>
                 ))}
-                <td>
-                  <Button 
-                    variant="outline-primary" 
-                    size="sm" 
-                    className="me-2"
-                    onClick={() => handleEdit(row.original)}
-                  >
-                    <FaEdit />
-                  </Button>
-                  <Button 
-                    variant="outline-danger" 
-                    size="sm"
-                    onClick={() => handleDelete(row.original)}
-                  >
-                    <FaTrash />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </div>
+              </tbody>
+            </Table>
+          </div>
+        </Card.Body>
+      </Card>
 
       {/* Pagination Controls */}
-      <div className="pagination-controls mt-3">
-        <div className="d-flex justify-content-between align-items-center">
-          <div>
-            <Button 
-              onClick={() => table.setPageIndex(0)} 
-              disabled={!table.getCanPreviousPage()}
-            >
-              {'<<'}
-            </Button>
-            <Button 
-              onClick={() => table.previousPage()} 
-              disabled={!table.getCanPreviousPage()} 
-              className="ms-2"
-            >
-              Previous
-            </Button>
-            <Button 
-              onClick={() => table.nextPage()} 
-              disabled={!table.getCanNextPage()} 
-              className="ms-2"
-            >
-              Next
-            </Button>
-            <Button 
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)} 
-              disabled={!table.getCanNextPage()} 
-              className="ms-2"
-            >
-              {'>>'}
-            </Button>
+      <Card className="pagination-card mt-4">
+        <Card.Body>
+          <div className="pagination-controls">
+            <div className="pagination-info">
+              <span className="pagination-text">
+                Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
+                {Math.min(
+                  (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                  table.getRowCount()
+                )} of {table.getRowCount()} entries
+              </span>
+            </div>
+            
+            <div className="pagination-buttons">
+              <Button 
+                variant="outline-primary"
+                onClick={() => table.setPageIndex(0)} 
+                disabled={!table.getCanPreviousPage()}
+                className="pagination-btn"
+              >
+                First
+              </Button>
+              <Button 
+                variant="outline-primary"
+                onClick={() => table.previousPage()} 
+                disabled={!table.getCanPreviousPage()} 
+                className="pagination-btn"
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline-primary"
+                onClick={() => table.nextPage()} 
+                disabled={!table.getCanNextPage()} 
+                className="pagination-btn"
+              >
+                Next
+              </Button>
+              <Button 
+                variant="outline-primary"
+                onClick={() => table.setPageIndex(table.getPageCount() - 1)} 
+                disabled={!table.getCanNextPage()} 
+                className="pagination-btn"
+              >
+                Last
+              </Button>
+            </div>
+            
+            <div className="page-size-selector">
+              <select
+                value={table.getState().pagination.pageSize}
+                onChange={e => table.setPageSize(Number(e.target.value))}
+                className="page-size-select"
+              >
+                {[10, 20, 30, 40, 50].map(pageSize => (
+                  <option key={pageSize} value={pageSize}>
+                    Show {pageSize}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <span>
-            Page{' '}
-            <strong>
-              {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-            </strong>
-          </span>
-          <select
-            value={table.getState().pagination.pageSize}
-            onChange={e => table.setPageSize(Number(e.target.value))}
-          >
-            {[10, 20, 30, 40, 50].map(pageSize => (
-              <option key={pageSize} value={pageSize}>
-                Show {pageSize}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Modal for editing */}
-      <Modal show={showModal} onHide={() => setShowModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Edit Item</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>Edit functionality can be implemented here</p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary">
-            Save Changes
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </>
+        </Card.Body>
+      </Card>
+    </div>
   )
 }
 

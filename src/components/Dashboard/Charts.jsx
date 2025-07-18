@@ -14,7 +14,7 @@ import {
   Legend,
 } from 'chart.js'
 import { chartData } from '../../data/mockData'
-
+import { Maximize2 } from 'lucide-react'
 ChartJS.register(
   CategoryScale,
   LinearScale,

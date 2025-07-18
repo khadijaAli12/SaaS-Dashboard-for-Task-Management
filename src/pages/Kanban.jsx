@@ -1,161 +1,101 @@
-import React, { useState } from 'react'
-import { Container, Button, Modal, Form, Badge } from 'react-bootstrap'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, MoreHorizontal, Clock, User, Flag } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Container, Row, Col, Card, Button, Alert } from 'react-bootstrap'
+import { motion } from 'framer-motion'
+import { 
+  Kanban as KanbanIcon, 
+  BarChart3, 
+  Clock, 
+  CheckCircle, 
+  AlertCircle,
+  TrendingUp,
+  Users,
+  Target,
+  Zap
+} from 'lucide-react'
+import KanbanBoard from '../components/Kandan/KanbanBoard'
 import { kanbanData } from '../data/mockData'
 import toast from 'react-hot-toast'
 
 const Kanban = () => {
-  const [data, setData] = useState(kanbanData)
-  const [showModal, setShowModal] = useState(false)
-  const [draggedItem, setDraggedItem] = useState(null)
-  const [draggedOver, setDraggedOver] = useState(null)
+  const [boardData, setBoardData] = useState(kanbanData)
+  const [boardStats, setBoardStats] = useState({
+    totalTasks: 0,
+    completedTasks: 0,
+    inProgressTasks: 0,
+    todoTasks: 0,
+    overdueTask: 0
+  })
 
-  const handleDragStart = (e, taskId) => {
-    setDraggedItem(taskId)
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/html', e.target.outerHTML)
-  }
+  // Calculate board statistics
+  useEffect(() => {
+    const calculateStats = () => {
+      const allTasks = Object.values(boardData.tasks)
+      const completedTasks = boardData.columns['done']?.taskIds.length || 0
+      const inProgressTasks = boardData.columns['in-progress']?.taskIds.length || 0
+      const todoTasks = boardData.columns['todo']?.taskIds.length || 0
+      
+      const overdueTask = allTasks.filter(task => {
+        if (!task.dueDate) return false
+        return new Date(task.dueDate) < new Date()
+      }).length
 
-  const handleDragOver = (e, columnId) => {
-    e.preventDefault()
-    setDraggedOver(columnId)
-  }
-
-  const handleDragLeave = () => {
-    setDraggedOver(null)
-  }
-
-  const handleDrop = (e, targetColumnId) => {
-    e.preventDefault()
-    setDraggedOver(null)
-    
-    if (!draggedItem) return
-
-    const sourceColumn = Object.values(data.columns).find(col => 
-      col.taskIds.includes(draggedItem)
-    )
-    
-    if (!sourceColumn || sourceColumn.id === targetColumnId) return
-
-    const newData = {
-      ...data,
-      columns: {
-        ...data.columns,
-        [sourceColumn.id]: {
-          ...sourceColumn,
-          taskIds: sourceColumn.taskIds.filter(id => id !== draggedItem)
-        },
-        [targetColumnId]: {
-          ...data.columns[targetColumnId],
-          taskIds: [...data.columns[targetColumnId].taskIds, draggedItem]
-        }
-      }
+      setBoardStats({
+        totalTasks: allTasks.length,
+        completedTasks,
+        inProgressTasks,
+        todoTasks,
+        overdueTask
+      })
     }
 
-    setData(newData)
-    setDraggedItem(null)
-    toast.success('Task moved successfully!')
+    calculateStats()
+  }, [boardData])
+
+  const handleDataChange = (newData) => {
+    setBoardData(newData)
   }
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'High': return { bg: 'danger', gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }
-      case 'Medium': return { bg: 'warning', gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' }
-      case 'Low': return { bg: 'success', gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }
-      default: return { bg: 'secondary', gradient: 'linear-gradient(135deg, #6c757d 0%, #495057 100%)' }
+  const resetBoard = () => {
+    if (window.confirm('Are you sure you want to reset the board? This will restore the default tasks.')) {
+      setBoardData(kanbanData)
+      toast.success('Board reset successfully!')
     }
   }
 
-  const TaskCard = ({ task, index }) => (
+  const StatCard = ({ icon: Icon, title, value, color, description, trend }) => (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3 }}
-      className="kanban-card hover-lift"
-      draggable
-      onDragStart={(e) => handleDragStart(e, task.id)}
-      style={{
-        cursor: draggedItem === task.id ? 'grabbing' : 'grab',
-        opacity: draggedItem === task.id ? 0.5 : 1
-      }}
+      transition={{ duration: 0.5 }}
     >
-      <div className="kanban-card-header">
-        <h6 className="kanban-card-title">{task.title}</h6>
-        <div className="d-flex align-items-center gap-2">
-          <Badge 
-            className={`priority-badge ${getPriorityColor(task.priority).bg.toLowerCase()}`}
-            style={{ background: getPriorityColor(task.priority).gradient }}
-          >
-            <Flag size={12} className="me-1" />
-            {task.priority}
-          </Badge>
-          <Button variant="link" size="sm" className="p-0">
-            <MoreHorizontal size={16} />
-          </Button>
-        </div>
-      </div>
-      <p className="kanban-card-description">{task.description}</p>
-      <div className="d-flex justify-content-between align-items-center mt-3">
-        <div className="d-flex align-items-center gap-2">
-          <Clock size={14} style={{ color: 'var(--text-muted)' }} />
-          <small style={{ color: 'var(--text-muted)' }}>2 days left</small>
-        </div>
-        <div className="d-flex align-items-center gap-1">
-          <div
-            style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '50%',
-              background: 'var(--primary-gradient)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '0.7rem',
-              fontWeight: 'bold'
-            }}
-          >
-            JD
+      <Card className="kanban-stat-card">
+        <Card.Body>
+          <div className="stat-kanban-content">
+            <div className="stat-kanban-icon" style={{ backgroundColor: color }}>
+              <Icon size={24} />
+            </div>
+            <div className="stat-kanban-info">
+              <div className="stat-kanban-header">
+                <div className="stat-kanban-value">{value}</div>
+                {trend && (
+                  <div className={`stat-trend ${trend > 0 ? 'positive' : 'negative'}`}>
+                    <TrendingUp size={16} />
+                    {trend > 0 ? '+' : ''}{trend}%
+                  </div>
+                )}
+              </div>
+              <div className="stat-kanban-title">{title}</div>
+              <div className="stat-kanban-desc">{description}</div>
+            </div>
           </div>
-          <User size={14} style={{ color: 'var(--text-muted)' }} />
-        </div>
-      </div>
+        </Card.Body>
+      </Card>
     </motion.div>
   )
 
-  const KanbanColumn = ({ column, tasks }) => (
-    <motion.div
-      className="kanban-column"
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="kanban-column-header">
-        <h5 className="kanban-column-title">{column.title}</h5>
-        <div className="d-flex align-items-center gap-2">
-          <span className="kanban-column-count">{tasks.length}</span>
-          <Button variant="link" size="sm" className="p-0">
-            <Plus size={16} />
-          </Button>
-        </div>
-      </div>
-      <div
-        className={`kanban-column-content ${draggedOver === column.id ? 'drag-over' : ''}`}
-        onDragOver={(e) => handleDragOver(e, column.id)}
-        onDragLeave={handleDragLeave}
-        onDrop={(e) => handleDrop(e, column.id)}
-      >
-        <AnimatePresence>
-          {tasks.map((task, index) => (
-            <TaskCard key={task.id} task={task} index={index} />
-          ))}
-        </AnimatePresence>
-      </div>
-    </motion.div>
-  )
+  const completionRate = boardStats.totalTasks > 0 
+    ? Math.round((boardStats.completedTasks / boardStats.totalTasks) * 100) 
+    : 0
 
   return (
     <Container fluid className="kanban-page">
@@ -165,21 +105,149 @@ const Kanban = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <h1 className="page-title">Project Board</h1>
-        <p className="page-description">
-          Manage your tasks with intuitive drag-and-drop functionality
-        </p>
+        <div className="kanban-page-header">
+          <div className="kanban-title-section">
+            <h1 className="page-title">
+              <KanbanIcon size={32} className="me-3" />
+              Kanban Board
+            </h1>
+            <p className="page-description">
+              Manage your tasks with intuitive drag-and-drop functionality and real-time collaboration
+            </p>
+          </div>
+          
+          <div className="kanban-header-actions">
+            <Button variant="outline-secondary" onClick={resetBoard}>
+              <Zap size={16} className="me-2" />
+              Reset Board
+            </Button>
+          </div>
+        </div>
       </motion.div>
 
-      <div className="kanban-board">
-        {data.columnOrder.map((columnId) => {
-          const column = data.columns[columnId]
-          const tasks = column.taskIds.map((taskId) => data.tasks[taskId])
-          return (
-            <KanbanColumn key={column.id} column={column} tasks={tasks} />
-          )
-        })}
-      </div>
+      {/* Kanban Statistics */}
+      <motion.div 
+        className="kanban-stats-section mb-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <Row>
+          <Col lg={3} md={6} className="mb-3">
+            <StatCard
+              icon={Target}
+              title="Total Tasks"
+              value={boardStats.totalTasks}
+              color="#667eea"
+              description="All tasks in board"
+              trend={5}
+            />
+          </Col>
+          <Col lg={3} md={6} className="mb-3">
+            <StatCard
+              icon={CheckCircle}
+              title="Completed"
+              value={boardStats.completedTasks}
+              color="#4facfe"
+              description={`${completionRate}% completion rate`}
+              trend={12}
+            />
+          </Col>
+          <Col lg={3} md={6} className="mb-3">
+            <StatCard
+              icon={Clock}
+              title="In Progress"
+              value={boardStats.inProgressTasks}
+              color="#fa709a"
+              description="Currently active tasks"
+              trend={-2}
+            />
+          </Col>
+          <Col lg={3} md={6} className="mb-3">
+            <StatCard
+              icon={AlertCircle}
+              title="To Do"
+              value={boardStats.todoTasks}
+              color="#fee140"
+              description="Pending tasks"
+              trend={8}
+            />
+          </Col>
+        </Row>
+      </motion.div>
+
+      {/* Progress Overview */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="mb-4"
+      >
+        <Card className="progress-overview-card">
+          <Card.Body>
+            <div className="progress-overview-header">
+              <h5 className="progress-title">
+                <BarChart3 size={20} className="me-2" />
+                Project Progress
+              </h5>
+              <div className="progress-stats">
+                <span className="completion-rate">{completionRate}% Complete</span>
+                {boardStats.overdueTask > 0 && (
+                  <Badge bg="danger" className="ms-2">
+                    {boardStats.overdueTask} Overdue
+                  </Badge>
+                )}
+              </div>
+            </div>
+            
+            <div className="progress-bar-container">
+              <div className="progress-bar-track">
+                <div 
+                  className="progress-bar-fill"
+                  style={{ width: `${completionRate}%` }}
+                />
+              </div>
+              <div className="progress-labels">
+                <span className="progress-label">
+                  <Users size={14} className="me-1" />
+                  {boardStats.totalTasks} Tasks
+                </span>
+                <span className="progress-label">
+                  <CheckCircle size={14} className="me-1" />
+                  {boardStats.completedTasks} Done
+                </span>
+              </div>
+            </div>
+          </Card.Body>
+        </Card>
+      </motion.div>
+
+      {/* Kanban Board */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+      >
+        <KanbanBoard 
+          initialData={boardData}
+          onDataChange={handleDataChange}
+        />
+      </motion.div>
+
+      {/* Tips */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8 }}
+        className="mt-4"
+      >
+        <Alert variant="info" className="kanban-tips">
+          <Target size={20} className="me-2" />
+          <strong>Pro Tips:</strong> Drag tasks between columns to update their status. 
+          Use the search and filter options to find specific tasks quickly. 
+          Click the + button to add new tasks to any column.
+        </Alert>
+      </motion.div>
     </Container>
   )
 }

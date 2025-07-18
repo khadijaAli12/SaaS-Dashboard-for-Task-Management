@@ -48,7 +48,7 @@ const Dashboard = () => {
     },
     {
       title: 'Revenue',
-      value: '$45,210',
+      value: '$45,21',
       change: '+8.2%',
       changeType: 'positive',
       icon: DollarSign,

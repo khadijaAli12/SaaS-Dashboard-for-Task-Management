@@ -24,8 +24,6 @@ const Sidebar = ({ isOpen }) => {
     { path: '/kanban', icon: Kanban, label: 'Kanban' },
     { path: '/charts', icon: PieChart, label: 'Charts' },
     { path: '/users', icon: Users, label: 'Users' },
-    { path: '/reports', icon: FileText, label: 'Reports' },
-    { path: '/analytics', icon: TrendingUp, label: 'Analytics' },
     { path: '/settings', icon: Settings, label: 'Settings' }
   ]
 

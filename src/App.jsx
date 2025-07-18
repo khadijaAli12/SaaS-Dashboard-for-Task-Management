@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ThemeProvider } from './context/ThemeContext'
+import ErrorBoundary from './components/ErrorBoundary'
 import Navbar from './components/Layout/Navbar'
 import Sidebar from './components/Layout/Sidebar'
 import Dashboard from './pages/Dashboard'
 import Tables from './pages/Tables'
 import Calendar from './pages/Calendar'
 import Kanban from './pages/Kanban'
+import Charts from './pages/Charts'
+import Users from './pages/Users' 
 import Settings from './pages/Settings'
 
 const LoadingScreen = () => (
@@ -82,13 +85,18 @@ function App() {
               <div className="app-body">
                 <Sidebar isOpen={sidebarOpen} />
                 <main className={`main-content ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/tables" element={<Tables />} />
-                    <Route path="/calendar" element={<Calendar />} />
-                    <Route path="/kanban" element={<Kanban />} />
-                    <Route path="/settings" element={<Settings />} />
-                  </Routes>
+                  <ErrorBoundary>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/tables" element={<Tables />} />
+                      <Route path="/calendar" element={<Calendar />} />
+                      <Route path="/kanban" element={<Kanban />} />
+                      <Route path="/users" element={<Users />} />
+                      <Route path="/charts" element={<Charts />} />
+      
+                      <Route path="/settings" element={<Settings />} />
+                    </Routes>
+                  </ErrorBoundary>
                 </main>
               </div>
             </motion.div>
